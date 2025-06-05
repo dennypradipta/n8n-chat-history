@@ -31,16 +31,20 @@ import {
   Users,
   Calendar,
   Search,
+  ExternalLink,
+  Github,
 } from "lucide-react";
+import Link from "next/link";
 
 interface Chat {
   id: string;
   userMessage: string;
-  aiMessage: string | null;
+  aiMessage: string;
   sessionId: string;
   createdAt: string;
   updatedAt: string;
-  workflow: string | null;
+  workflow: string;
+  workflowId: string;
 }
 
 interface SessionChat {
@@ -87,7 +91,11 @@ async function fetchChats({
   return data;
 }
 
-export default function ChatsUI() {
+export default function ChatsUI({
+  n8nBaseURL,
+}: {
+  n8nBaseURL: string | undefined;
+}) {
   const [pagination, setPagination] = useState<PaginationInfo>({
     page: 1,
     pageSize: 10,
@@ -215,9 +223,19 @@ export default function ChatsUI() {
 
               {chat.workflow && (
                 <div className="pt-2">
-                  <Badge variant="secondary" className="text-xs">
-                    Workflow: {chat.workflow}
-                  </Badge>
+                  <Link
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    href={`${n8nBaseURL}/workflow/${chat.workflowId}`}
+                    className="cursor-pointer"
+                  >
+                    <Badge
+                      variant="secondary"
+                      className="hover:bg-secondary/60 text-xs items-center"
+                    >
+                      Workflow: {chat.workflow} <ExternalLink />
+                    </Badge>
+                  </Link>
                 </div>
               )}
             </CardContent>
@@ -372,12 +390,25 @@ export default function ChatsUI() {
 
   return (
     <div className="max-w-7xl w-full mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Chat History</h1>
+          <h1 className="text-3xl font-bold flex flex-row gap-2 items-end">
+            <span>n8n Chat History</span>
+          </h1>
           <p className="text-muted-foreground mt-1">
-            Browse and search through your conversation history
+            Browse and search through your n8n workflows history.
           </p>
+        </div>
+        <div className="">
+          <Link
+            target="_blank"
+            rel="noopener noreferrer"
+            href="https://github.com/dennypradipta/n8n-chat-history"
+          >
+            <Button className="rounded-full cursor-pointer" size="icon">
+              <Github className="h-5 w-5" />
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -469,6 +500,19 @@ export default function ChatsUI() {
           {renderPagination()}
         </>
       )}
+      <div className="flex flex-row gap-1 text-center items-center justify-center w-full">
+        <span>Vibe coded by </span>
+        <span>
+          <Link
+            className="text-indigo-500"
+            target="_blank"
+            rel="noopener noreferrer"
+            href="https://github.com/dennypradipta"
+          >
+            Denny Pradipta
+          </Link>
+        </span>
+      </div>
     </div>
   );
 }
