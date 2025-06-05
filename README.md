@@ -1,36 +1,89 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# n8n Chat History
 
-## Getting Started
+A project to view and manage n8n workflow chat history using modern web technologies.
 
-First, run the development server:
+## Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Bun - JavaScript runtime & package manager
+- Next.js - React framework
+- Shadcn/ui - UI component library
+- Tailwind CSS - Utility-first CSS framework
+- Drizzle ORM - TypeScript ORM
+- PostgreSQL - Database
+
+## Prerequisites
+
+- Bun installed on your system
+- PostgreSQL database instance
+- n8n instance (for adding chat data)
+
+## Setup
+
+1. Install dependencies:
+
+```
+bun install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Configure environment variables:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Copy the .env.example file to .env
+- Update the DATABASE_URL with your PostgreSQL connection string
+- Update the N8N_URL with your n8n base url (e.g https://n8n.something.com)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. Migrate the database schema:
 
-## Learn More
+```bash
+bunx --bun drizzle-kit migrate
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Running the Project
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Start the development server:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+bun dev
+```
 
-## Deploy on Vercel
+The application will be available at http://localhost:3000
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Docker
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+To run the application using Docker, follow these steps:
+
+1. Build the Docker image:
+
+```bash
+docker build -t n8n-chat-history .
+```
+
+2. Run the Docker container:
+
+```bash
+# Replace the environment variables with your actual value
+
+docker run -p 3000:3000 -e DATABASE_URL=postgresql://user:password@host:port/database -e N8N_URL=http://localhost:5678 n8n-chat-history
+
+```
+
+## Adding Chat Data via n8n
+
+1. In your n8n instance, add a new PostgreSQL node
+2. Configure the PostgreSQL connection:
+
+   - Host: Your PostgreSQL host
+   - Database: Your database name
+   - Schema: public
+   - User & Password: Your database credentials
+   - SSL: According to your setup
+
+3. In the PostgreSQL node, set up an INSERT query with the following fields:
+
+   - user_message: The message sent by the user
+   - ai_message: The response from the AI
+   - session_id: Unique identifier for the chat session
+   - workflow_id: ID of the n8n workflow
+   - workflow_name: Name of the n8n workflow
+
+4. Connect the PostgreSQL node to your workflow and activate it
+   Now your chat history will be stored in the database and viewable through this application.
