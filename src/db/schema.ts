@@ -6,6 +6,7 @@ export const chatsTable = pgTable("chats", {
   aiMessage: text("ai_message").notNull(),
   sessionId: text("session_id").notNull(),
   workflow: varchar({ length: 255 }).notNull(),
+  workflowId: text("workflow_id").notNull(),
   createdAt: date("created_at").defaultNow().notNull(),
   updatedAt: date("updated_at").defaultNow().notNull(),
 });
