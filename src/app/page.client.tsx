@@ -35,6 +35,7 @@ import {
   Github,
 } from "lucide-react";
 import Link from "next/link";
+import Stats from "./components/stats";
 
 interface Chat {
   id: string;
@@ -411,6 +412,9 @@ export default function ChatsUI({
           </Link>
         </div>
       </div>
+
+      {/* Stats */}
+      <Stats />
 
       {/* Controls */}
       <Card>

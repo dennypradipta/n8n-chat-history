@@ -1,10 +1,8 @@
-// /api/chats/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import { chatsTable } from "@/db/schema";
 import { asc, desc, inArray, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/node-postgres";
+import { NextRequest, NextResponse } from "next/server";
 
-const db = drizzle(process.env.DATABASE_URL!);
+import { chatsTable } from "@/db/schema";
+import db from "@/app/lib/db";
 
 export async function GET(request: NextRequest) {
   try {
