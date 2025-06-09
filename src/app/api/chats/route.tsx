@@ -60,10 +60,10 @@ export async function GET(request: NextRequest) {
         .from(chatsTable)
         .where(inArray(chatsTable.sessionId, sessionIds))
         .orderBy(
-          chatsTable.sessionId,
           sortOrder === "asc"
             ? asc(chatsTable.createdAt)
-            : desc(chatsTable.createdAt)
+            : desc(chatsTable.createdAt),
+          chatsTable.sessionId
         );
 
       // Group by sessionId
