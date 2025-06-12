@@ -4,6 +4,7 @@ A project to view and manage n8n workflow chat history using modern web technolo
 
 ## Tech Stack
 
+- Golang - Backend programming language
 - Bun - JavaScript runtime & package manager
 - Next.js - React framework
 - Shadcn/ui - UI component library
@@ -13,11 +14,20 @@ A project to view and manage n8n workflow chat history using modern web technolo
 
 ## Prerequisites
 
+- Golang installed on your system
 - Bun installed on your system
 - PostgreSQL database instance
 - n8n instance (for adding chat data)
 
 ## Setup
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/dennypradipta/n8n-chat-history.git
+```
+
+### Frontend
 
 1. Install dependencies:
 
@@ -37,24 +47,49 @@ bun install
 bunx --bun drizzle-kit migrate
 ```
 
-## Running the Project
-
-Start the development server:
+4. Start the development server:
 
 ```bash
-bun dev
+bun run dev
 ```
 
-The application will be available at http://localhost:3000
+### Backend
+
+1. Navigate to the backend directory:
+
+```bash
+cd backend
+```
+
+2. Install dependencies:
+
+```bash
+go mod tidy
+```
+
+3. Configure environment variables:
+
+- Copy the .env.example file to .env
+- Update the DATABASE_URL with your PostgreSQL connection string
+
+4. Migrate the database schema by running the SQL file in the `migrations` directory into your PostgreSQL database
+
+5. Start the backend server:
+
+```bash
+go run main.go
+```
 
 ## Docker
+
+### Frontend
 
 To run the application using Docker, follow these steps:
 
 1. Build the Docker image:
 
 ```bash
-docker build -t n8n-chat-history .
+docker build -f Dockerfile.frontend -t n8n-chat-history:frontend . --build-arg NEXT_PUBLIC_N8N_URL=https://n8n.something.com --build-arg NEXT_PUBLIC_API_URL=https://api.something.com
 ```
 
 2. Run the Docker container:
@@ -62,8 +97,25 @@ docker build -t n8n-chat-history .
 ```bash
 # Replace the environment variables with your actual value
 
-docker run -p 3000:3000 -e DATABASE_URL=postgresql://user:password@host:port/database -e N8N_URL=http://localhost:5678 n8n-chat-history
+docker run -p 3000:80 n8n-chat-history:frontend
 
+```
+
+## Backend
+
+To run the application using Docker, follow these steps:
+
+1. Build the Docker image:
+
+```bash
+docker build . -t n8n-chat-history:backend -f Dockerfile.backend
+```
+
+2. Run the Docker container:
+
+```bash
+# Replace the environment variables with your actual value
+docker run -p 8080:8080 -e DATABASE_URL=postgresql://user:password@host:port/database -e CHAT_URL=http://localhost:3000 n8n-chat-history:backend
 ```
 
 ## Adding Chat Data via n8n

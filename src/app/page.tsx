@@ -6,6 +6,6 @@ export const metadata = {
 };
 
 export default function Home() {
-  const n8nBaseURL = process.env.N8N_URL;
+  const n8nBaseURL = process.env.NEXT_PUBLIC_N8N_URL;
   return <ChatsUI n8nBaseURL={n8nBaseURL} />;
 }

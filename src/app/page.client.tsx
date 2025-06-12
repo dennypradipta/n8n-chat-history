@@ -84,7 +84,9 @@ async function fetchChats({
     sortOrder,
   });
 
-  const response = await fetch(`/api/chats?${params}`);
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/chats?${params}`
+  );
   const data = await response.json();
 
   if (!response.ok) throw new Error(data.error || "Failed to fetch chats");

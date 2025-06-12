@@ -1,0 +1,16 @@
+FROM golang:1.22-alpine AS base
+
+WORKDIR /app
+
+COPY ./backend/ ./
+
+RUN go mod tidy
+
+RUN go build -o main .
+
+FROM alpine:3.17.3
+WORKDIR /app
+
+COPY --from=base /app/main .
+EXPOSE 8080
+CMD ["./main"]

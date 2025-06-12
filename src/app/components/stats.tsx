@@ -1,3 +1,5 @@
+"use client";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,7 +17,10 @@ type Response = {
 export default function Stats() {
   const { data, isLoading } = useQuery<Response>({
     queryKey: ["chats"],
-    queryFn: () => fetch("/api/stats").then((res) => res.json()),
+    queryFn: () =>
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stats`).then((res) =>
+        res.json()
+      ),
   });
 
   return (
