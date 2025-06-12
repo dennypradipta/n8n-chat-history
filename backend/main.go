@@ -423,9 +423,15 @@ func originCheckMiddleware(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
+		referer := r.Header.Get("Referer")
 
-		if origin == "" || origin != allowedOrigin {
-			http.Error(w, "Forbidden", http.StatusForbidden)
+		if origin != "" && origin != allowedOrigin {
+			http.Error(w, "Forbidden - invalid origin", http.StatusForbidden)
+			return
+		}
+
+		if referer != "" && !strings.HasPrefix(referer, allowedOrigin) {
+			http.Error(w, "Forbidden - invalid referer", http.StatusForbidden)
 			return
 		}
 
