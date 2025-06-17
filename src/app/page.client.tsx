@@ -2,13 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect, useMemo } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -29,27 +23,32 @@ import {
   ChevronRight,
   MessageSquare,
   Users,
-  Calendar,
   Search,
-  ExternalLink,
   Github,
 } from "lucide-react";
 import Link from "next/link";
-import Stats from "./components/stats";
 
-interface Chat {
-  id: string;
-  userMessage: string;
-  aiMessage: string;
-  sessionId: string;
-  createdAt: string;
-  updatedAt: string;
-  workflow: string;
-  workflowId: string;
+// Message structure that matches the JSONB column
+interface Message {
+  type: "ai" | "human" | "system"; // or other message types
+  content: string;
+  tool_calls: unknown[]; // Array of tool calls
+  additional_kwargs: Record<string, unknown>; // Additional metadata
+  response_metadata: Record<string, unknown>; // Response metadata
+  invalid_tool_calls: unknown[]; // Array of invalid tool calls
 }
 
-interface SessionChat {
-  [sessionId: string]: Chat[];
+// Conversation structure when grouped by session
+interface ChatConversation {
+  sessionId: string;
+  messages: Message[];
+}
+
+// Individual chat record from the database
+interface Chat {
+  id: number; // Changed from string to number since it's an integer in DB
+  sessionId: string;
+  message: Message;
 }
 
 interface PaginationInfo {
@@ -62,7 +61,7 @@ interface PaginationInfo {
 }
 
 interface Response {
-  data: Chat[] | SessionChat;
+  data: Chat[] | ChatConversation[];
   pagination: PaginationInfo;
 }
 
@@ -71,17 +70,20 @@ async function fetchChats({
   pageSize,
   groupBy,
   sortOrder,
+  searchTerm,
 }: {
   page: number;
   pageSize: number;
   groupBy: "simple" | "session";
   sortOrder: "asc" | "desc";
+  searchTerm: string;
 }) {
   const params = new URLSearchParams({
     page: page.toString(),
     pageSize: pageSize.toString(),
     groupBy,
     sortOrder,
+    search: searchTerm,
   });
 
   const response = await fetch(
@@ -94,11 +96,7 @@ async function fetchChats({
   return data;
 }
 
-export default function ChatsUI({
-  n8nBaseURL,
-}: {
-  n8nBaseURL: string | undefined;
-}) {
+export default function ChatsUI() {
   const [pagination, setPagination] = useState<PaginationInfo>({
     page: 1,
     pageSize: 10,
@@ -111,6 +109,7 @@ export default function ChatsUI({
   const { data, isLoading, isError, error, refetch } = useQuery<Response>({
     queryKey: [
       "chats",
+      searchTerm,
       pagination.page,
       pagination.pageSize,
       pagination.groupBy,
@@ -121,6 +120,7 @@ export default function ChatsUI({
         page: pagination.page,
         pageSize: pagination.pageSize,
         groupBy: pagination.groupBy,
+        searchTerm: searchTerm,
         sortOrder,
       }),
   });
@@ -145,16 +145,6 @@ export default function ChatsUI({
     setSortOrder(value);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   const filteredChats = useMemo(() => {
     if (!searchTerm || !data?.data) return data?.data;
 
@@ -163,22 +153,21 @@ export default function ChatsUI({
     if (pagination.groupBy === "simple" && Array.isArray(data.data)) {
       return (data.data as Chat[]).filter(
         (chat) =>
-          chat.userMessage.toLowerCase().includes(lower) ||
-          chat.aiMessage?.toLowerCase().includes(lower) ||
+          chat.message.content.toLowerCase().includes(lower) ||
           chat.sessionId.toLowerCase().includes(lower)
       );
     }
-
-    if (pagination.groupBy === "session" && !Array.isArray(data.data)) {
-      const result: Record<string, Chat[]> = {};
-      Object.entries(data.data).forEach(([sessionId, sessionChats]) => {
-        const matched = sessionChats.filter(
-          (chat) =>
-            chat.userMessage.toLowerCase().includes(lower) ||
-            chat.aiMessage?.toLowerCase().includes(lower) ||
+    if (pagination.groupBy === "session" && typeof data.data === "object") {
+      const result: Record<string, ChatConversation> = {};
+      Object.entries(data.data).forEach(([sessionId, conversation]) => {
+        const matchedMessages = conversation.messages.filter(
+          (chat: Message) =>
+            chat.content.toLowerCase().includes(lower) ||
             sessionId.toLowerCase().includes(lower)
         );
-        if (matched.length > 0) result[sessionId] = matched;
+        if (matchedMessages.length > 0) {
+          result[sessionId] = { ...conversation, messages: matchedMessages };
+        }
       });
       return result;
     }
@@ -201,44 +190,24 @@ export default function ChatsUI({
                     {chat.sessionId}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Calendar className="h-3 w-3" />
-                  {formatDate(chat.createdAt)}
-                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="space-y-2">
-                <div className="text-sm font-medium text-blue-600">User:</div>
-                <p className="text-sm bg-blue-50 p-3 rounded-lg border-l-4 border-blue-200">
-                  {chat.userMessage}
-                </p>
-              </div>
-
-              {chat.aiMessage && (
+              {chat.message.type === "human" && (
                 <div className="space-y-2">
-                  <div className="text-sm font-medium text-green-600">AI:</div>
-                  <p className="text-sm bg-green-50 p-3 rounded-lg border-l-4 border-green-200">
-                    {chat.aiMessage}
+                  <div className="text-sm font-medium text-blue-600">User:</div>
+                  <p className="text-sm bg-blue-50 p-3 rounded-lg border-l-4 border-blue-200">
+                    {chat.message.content}
                   </p>
                 </div>
               )}
 
-              {chat.workflow && (
-                <div className="pt-2">
-                  <Link
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    href={`${n8nBaseURL}/workflow/${chat.workflowId}`}
-                    className="cursor-pointer"
-                  >
-                    <Badge
-                      variant="secondary"
-                      className="hover:bg-secondary/60 text-xs items-center"
-                    >
-                      Workflow: {chat.workflow} <ExternalLink />
-                    </Badge>
-                  </Link>
+              {chat.message.type === "ai" && (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-green-600">AI:</div>
+                  <p className="text-sm bg-green-50 p-3 rounded-lg border-l-4 border-green-200">
+                    {chat.message.content}
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -249,78 +218,73 @@ export default function ChatsUI({
   };
 
   const renderSessionView = () => {
-    const sessionData = filteredChats as Record<string, Chat[]>;
+    const chatSessions = filteredChats as Record<string, ChatConversation>;
+
+    if (!chatSessions || Object.keys(chatSessions).length === 0) {
+      return <p className="text-muted-foreground">No messages found.</p>;
+    }
 
     return (
       <div className="space-y-6">
-        {Object.entries(sessionData).map(([sessionId, sessionChats]) => (
-          <Card key={sessionId} className="overflow-hidden pt-0">
-            <CardHeader className="bg-muted/50 py-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Users className="h-5 w-5" />
-                  Session: {sessionId}
-                </CardTitle>
-                <Badge variant="outline">{sessionChats.length} messages</Badge>
-              </div>
-              <CardDescription>
-                {sessionChats.length > 0 && (
-                  <>Started {formatDate(sessionChats[0].createdAt)}</>
-                )}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <ScrollArea className="h-96">
-                <div className="p-4 space-y-4">
-                  {sessionChats.map((chat, index) => (
-                    <div key={chat.id}>
-                      <div className="space-y-3">
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-medium text-blue-600">
-                            U
-                          </div>
-                          <div className="flex-1 space-y-1">
-                            <div className="text-xs text-muted-foreground">
-                              {formatDate(chat.createdAt)}
-                            </div>
-                            <div className="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-200">
-                              <p className="text-sm">{chat.userMessage}</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {chat.aiMessage && (
-                          <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-xs font-medium text-green-600">
-                              AI
-                            </div>
-                            <div className="flex-1">
-                              <div className="bg-green-50 p-3 rounded-lg border-l-4 border-green-200">
-                                <p className="text-sm">{chat.aiMessage}</p>
+        {Object.entries(chatSessions).map(([sessionId, conversation]) => {
+          const sessionChats = conversation.messages;
+          return (
+            <Card key={sessionId} className="overflow-hidden pt-0">
+              <CardHeader className="bg-muted/50 py-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Users className="h-5 w-5" />
+                    Session: {sessionId}
+                  </CardTitle>
+                  <Badge variant="outline">
+                    {sessionChats.length} messages
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <ScrollArea className="h-96">
+                  <div className="p-4 space-y-4">
+                    {sessionChats.map((chat, index) => (
+                      <div key={index}>
+                        <div className="space-y-3">
+                          {chat.type === "human" && (
+                            <div className="flex items-start gap-3">
+                              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-medium text-blue-600">
+                                U
+                              </div>
+                              <div className="flex-1 space-y-1">
+                                <div className="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-200">
+                                  <p className="text-sm">{chat.content}</p>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        {chat.workflow && (
-                          <div className="ml-11">
-                            <Badge variant="secondary" className="text-xs">
-                              Workflow: {chat.workflow}
-                            </Badge>
-                          </div>
+                          {chat.type === "ai" && (
+                            <div className="flex items-start gap-3">
+                              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-xs font-medium text-green-600">
+                                AI
+                              </div>
+                              <div className="flex-1">
+                                <div className="bg-green-50 p-3 rounded-lg border-l-4 border-green-200">
+                                  <p className="text-sm">{chat.content}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {index < sessionChats.length - 1 && (
+                          <Separator className="my-4" />
                         )}
                       </div>
-
-                      {index < sessionChats.length - 1 && (
-                        <Separator className="my-4" />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        ))}
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     );
   };
@@ -414,10 +378,6 @@ export default function ChatsUI({
           </Link>
         </div>
       </div>
-
-      {/* Stats */}
-      <Stats />
-
       {/* Controls */}
       <Card>
         <CardContent>

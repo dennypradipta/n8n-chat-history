@@ -16,8 +16,8 @@ A project to view and manage n8n workflow chat history using modern web technolo
 
 - Golang installed on your system
 - Bun installed on your system
-- PostgreSQL database instance
-- n8n instance (for adding chat data)
+- PostgreSQL Memory Node connected to your agents or memory managers
+- n8n (for adding chat data)
 
 ## Setup
 
@@ -39,15 +39,9 @@ bun install
 
 - Copy the .env.example file to .env
 - Update the DATABASE_URL with your PostgreSQL connection string
-- Update the N8N_URL with your n8n base url (e.g https://n8n.something.com)
+- Update the NEXT_PUBLIC_API_URL with the URL of the backend server
 
-3. Migrate the database schema:
-
-```bash
-bunx --bun drizzle-kit migrate
-```
-
-4. Start the development server:
+3. Start the development server:
 
 ```bash
 bun run dev
@@ -72,8 +66,6 @@ go mod tidy
 - Copy the .env.example file to .env
 - Update the DATABASE_URL with your PostgreSQL connection string
 
-4. Migrate the database schema by running the SQL file in the `migrations` directory into your PostgreSQL database
-
 5. Start the backend server:
 
 ```bash
@@ -89,7 +81,7 @@ To run the application using Docker, follow these steps:
 1. Build the Docker image:
 
 ```bash
-docker build -f Dockerfile.frontend -t n8n-chat-history:frontend . --build-arg NEXT_PUBLIC_N8N_URL=https://n8n.something.com --build-arg NEXT_PUBLIC_API_URL=https://api.something.com
+docker build -f Dockerfile.frontend -t n8n-chat-history:frontend . --build-arg NEXT_PUBLIC_API_URL=https://api.something.com
 ```
 
 2. Run the Docker container:
@@ -120,7 +112,7 @@ docker run -p 8080:8080 -e DATABASE_URL=postgresql://user:password@host:port
 
 ## Adding Chat Data via n8n
 
-1. In your n8n instance, add a new PostgreSQL node
+1. In your n8n workflows, make sure you have connected the PostgreSQL Memory Node to your Agents/Chat Memory Managers.
 2. Configure the PostgreSQL connection:
 
    - Host: Your PostgreSQL host
@@ -129,13 +121,5 @@ docker run -p 8080:8080 -e DATABASE_URL=postgresql://user:password@host:port
    - User & Password: Your database credentials
    - SSL: According to your setup
 
-3. In the PostgreSQL node, set up an INSERT query with the following fields:
-
-   - user_message: The message sent by the user
-   - ai_message: The response from the AI
-   - session_id: Unique identifier for the chat session
-   - workflow_id: ID of the n8n workflow
-   - workflow_name: Name of the n8n workflow
-
-4. Connect the PostgreSQL node to your workflow and activate it
-   Now your chat history will be stored in the database and viewable through this application.
+3. Try running a workflow and see if the chat data is being added to the database.
+4. Your chats can now be viewed in the frontend.
