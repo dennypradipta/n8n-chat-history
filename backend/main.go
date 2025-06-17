@@ -207,21 +207,21 @@ func handleSessionGrouping(w http.ResponseWriter, page, pageSize int, sortOrder 
 	var sessionQuery string
 	var args []interface{}
 	if searchTerm != "" {
-		sessionQuery = `
-			SELECT DISTINCT session_id
+		sessionQuery = fmt.Sprintf(`
+			SELECT DISTINCT ON (session_id) session_id
 			FROM n8n_chat_histories
 			WHERE message::text ILIKE $1 OR session_id ILIKE $1
-			ORDER BY session_id
+			ORDER BY session_id, %s
 			LIMIT $2 OFFSET $3
-		`
+		`, orderClause)
 		args = []interface{}{"%" + searchTerm + "%", pageSize, offset}
 	} else {
-		sessionQuery = `
-			SELECT DISTINCT session_id
+		sessionQuery = fmt.Sprintf(`
+			SELECT DISTINCT ON (session_id) session_id
 			FROM n8n_chat_histories
-			ORDER BY session_id
+			ORDER BY session_id, %s
 			LIMIT $1 OFFSET $2
-		`
+		`, orderClause)
 		args = []interface{}{pageSize, offset}
 	}
 
